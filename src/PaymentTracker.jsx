@@ -1,48 +1,45 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const PaymentTracker = () => {
   const [entries, setEntries] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [service, setService] = useState('');
   const [payment, setPayment] = useState('');
   const [date, setDate] = useState('');
 
-  // Load entries from localStorage on component mount
+  // Load entries from the backend on component mount
   useEffect(() => {
-    const savedEntries = localStorage.getItem('entries');
-    console.log('Loaded entries from localStorage:', savedEntries);
-    if (savedEntries) {
-      setEntries(JSON.parse(savedEntries));
-    }
-    setIsLoaded(true);
+    axios
+      .get('http://codivora-payment-tracker.vercel.app/api/server/entries')
+      .then((response) => {
+        setEntries(response.data);
+      })
+      .catch((err) => console.error(err));
   }, []);
-
-  // Save entries to localStorage whenever entries change, but only after initial load
-  useEffect(() => {
-    if (!isLoaded) return;
-    console.log('Saving entries to localStorage:', entries);
-    localStorage.setItem('entries', JSON.stringify(entries));
-  }, [entries, isLoaded]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!customerName || !service || !payment || !date) return;
 
     const newEntry = {
-      id: Date.now(),
       customerName,
       service,
       payment: parseFloat(payment),
       date,
     };
 
-    setEntries([...entries, newEntry]);
-    // Clear form fields
-    setCustomerName('');
-    setService('');
-    setPayment('');
-    setDate('');
+    axios
+      .post('http://codivora-payment-tracker.vercel.app/api/server/entries', newEntry)
+      .then((response) => {
+        setEntries([...entries, response.data]);
+        // Clear form fields
+        setCustomerName('');
+        setService('');
+        setPayment('');
+        setDate('');
+      })
+      .catch((err) => console.error(err));
   };
 
   return (
@@ -94,7 +91,6 @@ const PaymentTracker = () => {
           </button>
         </form>
 
-        {/* Responsive table container */}
         <div className="bg-white rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -115,7 +111,7 @@ const PaymentTracker = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {entries.map((entry) => (
-                <tr key={entry.id}>
+                <tr key={entry._id}>
                   <td className="px-6 py-4 whitespace-nowrap">{entry.customerName}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{entry.service}</td>
                   <td className="px-6 py-4 whitespace-nowrap">₦{entry.payment.toFixed(2)}</td>
